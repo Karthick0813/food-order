@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SnackPass</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
+        body{background:#f4f6f8}
+        header{background:#ff6b35;color:#fff;padding:16px;display:flex;align-items:center;gap:12px}
+        .logo{width:42px;height:42px;border-radius:50%;background:#fff;color:#ff6b35;font-weight:bold;display:flex;align-items:center;justify-content:center}
+        .filters{padding:16px;display:flex;gap:10px;flex-wrap:wrap}
+        .filters button{padding:8px 16px;border:none;border-radius:20px;background:#fff;cursor:pointer}
+        .filters button.active,.filters button:hover{background:#ff6b35;color:#fff}
+        .container{display:grid;grid-template-columns:3fr 1fr;gap:20px;padding:20px}
+        #menuGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+        .card{background:#fff;padding:12px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+        .card img{width:100%;height:140px;object-fit:cover;border-radius:8px}
+        .card button,.sidebar button,#newOrderBtn{margin-top:10px;width:100%;padding:10px;border:none;background:#ff6b35;color:#fff;border-radius:8px;cursor:pointer}
+        .card button:hover,.sidebar button:hover,#newOrderBtn:hover{background:#e85a28}
+        .sidebar{background:#fff;padding:16px;border-radius:10px;height:max-content}
+        .cartItem{border-bottom:1px solid #ddd;padding:8px 0}
+        .qty button{width:28px;height:28px}
+        .hidden{display:none}
+        #confirmation{max-width:500px;margin:40px auto;background:#fff;padding:20px;border-radius:10px;text-align:center}
+        @media(max-width:800px){.container{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<header><div class="logo">S</div><h1>Snack Pass</h1></header>
+
+<div class="filters">
+<button class="filter active" data-cat="All">All</button>
+<button class="filter" data-cat="Snacks">Snacks</button>
+<button class="filter" data-cat="Drinks">Drinks</button>
+<button class="filter" data-cat="Meals">Meals</button>
+</div>
+
+<div class="container" id="main">
+<div id="menuGrid"></div>
+
+<div class="sidebar">
+<h2>Your Order</h2>
+<div id="cartItems"><p>No items selected.</p></div>
+<h3>Total: <span id="total">₹0</span></h3>
+<button id="confirmBtn" disabled>Confirm Order</button>
+</div>
+</div>
+
+<div id="confirmation" class="hidden"></div>
+
+<script>
+const foodItems=[
+{id:1,name:"Veg Burger",category:"Snacks",price:80,image:"images/burger.jpg"},
+{id:2,name:"French Fries",category:"Snacks",price:60,image:"images/fries.jpg"},
+{id:3,name:"Cold Coffee",category:"Drinks",price:70,image:"images/coffee.jpg"},
+{id:4,name:"Lemon Juice",category:"Drinks",price:40,image:"images/juice.jpg"},
+{id:5,name:"Veg Fried Rice",category:"Meals",price:120,image:"images/fried_rice.jpg"},
+{id:6,name:"Paneer Wrap",category:"Meals",price:110,image:"images/wrap.jpg"}
+];
+let cart=[];
+const menu=document.getElementById("menuGrid"),cartBox=document.getElementById("cartItems"),total=document.getElementById("total"),confirmBtn=document.getElementById("confirmBtn");
+
+function renderMenu(list){
+menu.innerHTML="";
+list.forEach(i=>{
+menu.innerHTML+=`<div class="card">
+<img src="${i.image}">
+<h3>${i.name}</h3>
+<p>${i.category}</p>
+<p><b>₹${i.price}</b></p>
+<button onclick="addToCart(${i.id})">Add to Cart</button>
+</div>`;
+});
+}
+
+document.querySelectorAll(".filter").forEach(b=>{
+b.onclick=()=>{
+document.querySelectorAll(".filter").forEach(x=>x.classList.remove("active"));
+b.classList.add("active");
+const c=b.dataset.cat;
+renderMenu(c==="All"?foodItems:foodItems.filter(x=>x.category===c));
+};
+});
+
+function addToCart(id){
+let item=cart.find(x=>x.id===id);
+if(item)item.qty++;
+else{
+let f=foodItems.find(x=>x.id===id);
+cart.push({...f,qty:1});
+}
+renderCart();
+}
+
+function inc(id){cart.find(x=>x.id===id).qty++;renderCart();}
+function dec(id){
+let i=cart.find(x=>x.id===id);
+if(i.qty>1)i.qty--;
+else cart=cart.filter(x=>x.id!==id);
+renderCart();
+}
+
+function renderCart(){
+if(cart.length===0){
+cartBox.innerHTML="<p>No items selected.</p>";
+total.textContent="₹0";
+confirmBtn.disabled=true;
+return;
+}
+let sum=0;
+cartBox.innerHTML="";
+cart.forEach(i=>{
+sum+=i.price*i.qty;
+cartBox.innerHTML+=`<div class="cartItem">
+<b>${i.name}</b><br>₹${i.price}
+<div class="qty">
+<button onclick="dec(${i.id})">-</button>
+${i.qty}
+<button onclick="inc(${i.id})">+</button>
+</div>
+</div>`;
+});
+total.textContent="₹"+sum;
+confirmBtn.disabled=false;
+}
+
+function token(){
+return "SP-"+Math.random().toString(36).substring(2,6).toUpperCase()+Math.floor(Math.random()*900+100);
+}
+
+confirmBtn.onclick=()=>{
+if(!cart.length)return alert("Cart is empty!");
+let details=cart.map(i=>`<li>${i.name} × ${i.qty}</li>`).join("");
+document.getElementById("main").classList.add("hidden");
+const c=document.getElementById("confirmation");
+c.classList.remove("hidden");
+c.innerHTML=`<h2>🎉 Order Confirmed</h2>
+<p><b>Token:</b> ${token()}</p>
+<ul style="text-align:left;display:inline-block">${details}</ul>
+<p>Status: Preparing</p>
+<button id="newOrderBtn">New Order</button>`;
+cart=[];renderCart();
+document.getElementById("newOrderBtn").onclick=()=>{
+c.classList.add("hidden");
+document.getElementById("main").classList.remove("hidden");
+renderMenu(foodItems);
+};
+};
+
+renderMenu(foodItems);
+</script>
+</body>
+</html>
